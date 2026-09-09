@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Boxy
+Comment=Install Arch apps into distrobox and integrate them on your desktop
+Exec=Boxy
+Type=Application
+Categories=Utility;
+Icon=boxy
+Terminal=false
+StartupNotify=true
+MimeType=x-scheme-handler/boxy;

@@ -1,0 +1,58 @@
+#!/bin/bash
+# Boxy AppImage runtime bootstrap
+set -u
+# Resolve the AppDir root (works whether mounted via FUSE or extracted)
+APP="$APPDIR"
+if [ -z "$APP" ]; then
+  APP="$(dirname "$(readlink -f "$0")")"
+fi
+export APPDIR="$APP"
+
+# --- native libraries ---
+export LD_LIBRARY_PATH="$APP/usr/lib:${LD_LIBRARY_PATH:-}"
+
+# --- GTK / data dirs ---
+# Append the bundled share to XDG_DATA_DIRS so the bundled Adwaita/hicolor themes
+# and schemas are found, but NEVER override the user's XDG_DATA_HOME (that's where
+# distrobox-exported app icons live: ~/.local/share/icons).
+export XDG_DATA_DIRS="$APP/usr/share:${XDG_DATA_DIRS:-/usr/share:/usr/local/share}"
+export GSETTINGS_SCHEMA_DIR="$APP/usr/share/glib-2.0/schemas"
+export GDK_PIXBUF_MODULEDIR="$APP/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders"
+export GIO_EXTRA_MODULES="$APP/usr/lib/gio/modules"
+
+# Build a runtime gdk-pixbuf loader cache with $APPDIR-absolute module paths so the
+# svg/gif/tiff loaders are always found. The bundled query tool emits correct format.
+PIXBUF_CACHE="${XDG_RUNTIME_DIR:-/tmp}/boxy-pixbuf-loaders.cache"
+GDK_PIXBUF_MODULEDIR="$GDK_PIXBUF_MODULEDIR" "$APP/usr/lib/gdk-pixbuf-query-loaders" > "$PIXBUF_CACHE" 2>/dev/null
+export GDK_PIXBUF_MODULE_FILE="$PIXBUF_CACHE"
+
+# --- fonts (readonly-safe cache in tmp) ---
+# Generate a fonts.conf that points at the AppDir's bundled fonts so the AppImage
+# is self-contained; fontconfig caches go to a writable tmp dir.
+FONTCONF="${XDG_RUNTIME_DIR:-/tmp}/boxy-fonts.conf"
+APP_FCCACHE="${XDG_RUNTIME_DIR:-/tmp}/boxy-fontconfig"
+cat > "$FONTCONF" <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <dir>$APP/usr/share/fonts</dir>
+  <dir>/usr/share/fonts</dir>
+  <cachedir>$APP_FCCACHE</cachedir>
+  <config></config>
+</fontconfig>
+EOF
+export FONTCONFIG_FILE="$FONTCONF"
+export FONTCONFIG_PATH="$(dirname "$FONTCONF")"
+export FONTCONFIG_CACHEDIR="$APP_FCCACHE"
+mkdir -p "$FONTCONFIG_CACHEDIR" 2>/dev/null
+
+# --- writable home for .NET & app state (config/cache) ---
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+
+# Pick the display backend (Wayland preferred, X11 fallback)
+if [ -n "$WAYLAND_DISPLAY" ] && [ -z "${GDK_BACKEND:-}" ]; then
+  export GDK_BACKEND=wayland,x11
+fi
+
+exec "$APP/usr/lib/boxy/boxy" "$@"

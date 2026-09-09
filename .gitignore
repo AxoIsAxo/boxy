@@ -8,5 +8,10 @@ obj/
 # AppImage build workspace
 appimage-build/
 
+# AppImage build artifacts (keep build/build-appimage.sh and build/assets/)
+build/AppDir/
+build/publish/
+build/Boxy-*.AppImage
+
 # OS
 .DS_Store
