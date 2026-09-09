@@ -88,22 +88,31 @@ public sealed class HomePage
 
     private Gtk.Widget BuildContainerPanel()
     {
-        var box = Ui.HBox(14);
+        var box = Ui.HBox(16);
         Ui.AddClass(box, "boxy-panel");
-        box.MarginTop = box.MarginBottom = box.MarginStart = box.MarginEnd = 14;
+        box.MarginStart = box.MarginEnd = 20;
+        box.MarginTop = box.MarginBottom = 6;
 
-        var labels = Ui.VBox(2);
+        _ctIcon.PixelSize = 36;
+        _ctIcon.Valign = Gtk.Align.Center;
+
+        var labels = Ui.VBox(4);
         _ctTitle.Halign = Gtk.Align.Start;
+        _ctTitle.Wrap = true;
         _ctSub.Halign = Gtk.Align.Start;
+        _ctSub.Wrap = true;
         labels.Append(_ctTitle);
         labels.Append(_ctSub);
         labels.Hexpand = true;
+        labels.Valign = Gtk.Align.Center;
 
         var acts = Ui.VBox(6);
         Ui.AddClass(_ctBtn, "suggested-action");
         _ctBtn.Visible = false;
+        _ctBtn.Valign = Gtk.Align.Center;
         acts.Append(_ctBtn);
         acts.Append(_ctBtnHint);
+        acts.Valign = Gtk.Align.Center;
 
         box.Append(_ctIcon);
         box.Append(labels);
@@ -113,18 +122,26 @@ public sealed class HomePage
 
     private Gtk.Widget BuildUpdatePanel()
     {
-        var box = Ui.HBox(14);
+        var box = Ui.HBox(16);
         Ui.AddClass(box, "boxy-panel");
-        box.MarginTop = box.MarginBottom = box.MarginStart = box.MarginEnd = 14;
+        box.MarginStart = box.MarginEnd = 20;
+        box.MarginTop = box.MarginBottom = 6;
 
-        var labels = Ui.VBox(2);
+        _upIcon.PixelSize = 26;
+        _upIcon.Valign = Gtk.Align.Center;
+
+        var labels = Ui.VBox(4);
         _upTitle.Halign = Gtk.Align.Start;
+        _upTitle.Wrap = true;
         _upSub.Halign = Gtk.Align.Start;
+        _upSub.Wrap = true;
         labels.Append(_upTitle);
         labels.Append(_upSub);
         labels.Hexpand = true;
+        labels.Valign = Gtk.Align.Center;
 
         _upBtn.Visible = false;
+        _upBtn.Valign = Gtk.Align.Center;
         box.Append(_upIcon);
         box.Append(labels);
         box.Append(_upBtn);

@@ -119,6 +119,7 @@ public static class Ui
           background-color: alpha(@window_fg_color, .045);
           border: 1px solid alpha(@window_fg_color, .09);
           border-radius: 16px;
+          padding: 18px 22px;
         }
         .boxy-aur-warn {
           background-color: alpha(#f66151, .08);
