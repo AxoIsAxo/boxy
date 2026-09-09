@@ -1,8 +1,10 @@
 #!/bin/bash
 # Boxy AppImage runtime bootstrap
 set -u
-# Resolve the AppDir root (works whether mounted via FUSE or extracted)
-APP="$APPDIR"
+# Resolve the AppDir root. Works whether the AppImage is FUSE-mounted (the runtime
+# exports $APPDIR) OR extracted by an integration tool (Gear Lever etc.) — in which
+# case $APPDIR is unset and we derive it from this script's own location.
+APP="${APPDIR:-}"
 if [ -z "$APP" ]; then
   APP="$(dirname "$(readlink -f "$0")")"
 fi
