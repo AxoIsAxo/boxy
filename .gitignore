@@ -1,0 +1,12 @@
+# Build output
+bin/
+obj/
+
+# .NET
+*.user
+
+# AppImage build workspace
+appimage-build/
+
+# OS
+.DS_Store
