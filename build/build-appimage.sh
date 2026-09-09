@@ -102,23 +102,45 @@ for f in "$APP/usr/lib/"*.so*; do
   if [ -n "$soname" ] && [ "$soname" != "$(basename "$f")" ]; then ln -sf "$(basename "$f")" "$APP/usr/lib/$soname"; fi
 done
 
-# ---- 5. gdk-pixbuf loader modules + query tool ----
+# ---- 5. gdk-pixbuf loader modules + STATIC loader cache ----
 PIXBUF_LOADERS="$(dirname "$(lib libgdk_pixbuf-2.0.so.0)")/gdk-pixbuf-2.0/2.10.0/loaders"
 [ -d "$PIXBUF_LOADERS" ] || PIXBUF_LOADERS="$(find /usr/lib /usr/lib64 /lib /lib64 -path '*gdk-pixbuf-2.0/2.10.0/loaders' -type d -print -quit 2>/dev/null || true)"
 for l in libpixbufloader-svg.so libpixbufloader-gif.so libpixbufloader-tiff.so; do
   if [ -f "$PIXBUF_LOADERS/$l" ]; then cp -a "$PIXBUF_LOADERS/$l" "$APP/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/"; fi
 done
-# bundle a query-loaders tool for the runtime cache generation
+# Generate the loader cache at BUILD time with relative paths. The pixbuf runtime
+# resolves relative cache entries against GDK_PIXBUF_MODULEDIR, so the AppImage can
+# use a pre-generated cache without invoking gdk-pixbuf-query-loaders at runtime.
+# (Running that tool inside the AppImage's mixed ld-linking crashed with SIGSEGV.)
 QTOOL="$(command -v gdk-pixbuf-query-loaders 2>/dev/null || true)"
 [ -z "$QTOOL" ] && QTOOL="$(command -v gdk-pixbuf-query-loaders-64 2>/dev/null || true)"
 if [ -z "$QTOOL" ]; then
   QTOOL="$(find /usr /lib -name 'gdk-pixbuf-query-loaders*' -type f -print -quit 2>/dev/null || true)"
 fi
 if [ -n "$QTOOL" ]; then
-  cp -a "$QTOOL" "$APP/usr/lib/gdk-pixbuf-query-loaders"
-  chmod +x "$APP/usr/lib/gdk-pixbuf-query-loaders"
+  LOADER_DIR="$APP/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders"
+  # Run in the loader dir so the tool records the loaders, then rewrite the emitted
+  # absolute paths to a @APPDIR@ placeholder. AppRun substitutes the real mount root
+  # at runtime, so the pixbuf loader .so's are always found (relative paths don't
+  # resolve reliably across pixbuf versions).
+  ( cd "$LOADER_DIR" && GDK_PIXBUF_MODULEDIR="$LOADER_DIR" "$QTOOL" > "$APP/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache" 2>/dev/null || true )
+  python3 - "$APP/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache" <<'PY'
+import re, sys
+p = sys.argv[1]
+try:
+    s = open(p).read()
+except OSError:
+    sys.exit(0)
+# Replace the absolute build loader dir with a runtime $APPDIR placeholder.
+s = s.replace('#' * 0 + '#', '#')  # no-op keep comments
+old = s.splitlines()[4].split('= ')[-1].strip() if len(s.splitlines()) > 4 else ''
+# Robust: replace every absolute path that ends with the loaders dir prefix.
+s = re.sub(r'"[^"]*?gdk-pixbuf-2\.0/2\.10\.0/loaders/([^"]*)"', r'"@APPDIR@/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/\1"', s)
+s = re.sub(r'# LoaderDir = .*', '# LoaderDir = @APPDIR@/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders', s)
+open(p, 'w').write(s)
+PY
 else
-  log "WARNING: no gdk-pixbuf query-loaders tool found; runtime won't auto-gen loader cache"
+  log "WARNING: no gdk-pixbuf query-loaders tool found; loader cache not generated"
 fi
 
 # ---- 6. GIO modules (network for AUR RPC) ----
