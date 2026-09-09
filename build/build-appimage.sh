@@ -165,4 +165,13 @@ log "Packaging AppImage..."
 cd "$SCRIPT_DIR"
 ARCH=x86_64 appimagetool AppDir
 ls -la "$SCRIPT_DIR/$OUT"
+
+# ---- 12. Report the embedded runtime (guards against stale AppImageKit runtime) ----
+# The maintained appimagetool (AppImage/appimagetool) runtime mounts via fusermount3
+# (libfuse3) and falls back cleanly, so the AppImage runs on hosts that only ship
+# libfuse3 (no classic `fusermount`). The old AppImageKit runtime only tries
+# libfuse2's `fusermount` and fails there. Log which runtime we shipped.
+# The type-2 runtime prints its version on stderr.
+log "Embedded runtime: $(ARCH=x86_64 "$SCRIPT_DIR/$OUT" --appimage-version 2>&1 | head -n1 | sed 's/^AppImage runtime version: //')"
+
 log "Done: $SCRIPT_DIR/$OUT"

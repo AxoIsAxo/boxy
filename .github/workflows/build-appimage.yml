@@ -42,10 +42,14 @@ jobs:
       - name: Get appimagetool
         run: |
           mkdir -p "$HOME/bin"
+          # Use the maintained AppImage/appimagetool fork: its type-2 runtime mounts
+          # via fusermount3 (libfuse3) and falls back cleanly, so the AppImage runs
+          # on hosts where only libfuse3 (no classic `fusermount`) is installed.
           curl -fsSL -o "$HOME/bin/appimagetool" \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x "$HOME/bin/appimagetool"
           echo "$HOME/bin" >> "$GITHUB_PATH"
+          appimagetool --version
 
       - name: Build AppImage
         run: bash build/build-appimage.sh
