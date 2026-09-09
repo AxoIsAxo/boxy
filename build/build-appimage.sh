@@ -163,7 +163,9 @@ cp "$ASSETS/AppRun" "$APP/AppRun" && chmod +x "$APP/AppRun"
 # ---- 11. Package ----
 log "Packaging AppImage..."
 cd "$SCRIPT_DIR"
-ARCH=x86_64 appimagetool AppDir
+# appimagetool is itself an AppImage; run it extract-and-run so it never needs host
+# FUSE on CI runners (the same class of bug we bundle the new runtime to avoid).
+APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 appimagetool AppDir
 ls -la "$SCRIPT_DIR/$OUT"
 
 # ---- 12. Report the embedded runtime (guards against stale AppImageKit runtime) ----
@@ -172,6 +174,6 @@ ls -la "$SCRIPT_DIR/$OUT"
 # libfuse3 (no classic `fusermount`). The old AppImageKit runtime only tries
 # libfuse2's `fusermount` and fails there. Log which runtime we shipped.
 # The type-2 runtime prints its version on stderr.
-log "Embedded runtime: $(ARCH=x86_64 "$SCRIPT_DIR/$OUT" --appimage-version 2>&1 | head -n1 | sed 's/^AppImage runtime version: //')"
+log "Embedded runtime: $(APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 "$SCRIPT_DIR/$OUT" --appimage-version 2>&1 | head -n1 | sed 's/^AppImage runtime version: //')"
 
 log "Done: $SCRIPT_DIR/$OUT"
